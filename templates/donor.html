@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block content %}
+
+<section class="donor-page">
+    <div class="page-container">
+        <div class="donor-grid">
+            <!-- LEFT: Donor Registration -->
+             <div class="donor-card">
+                <h2>Donor Registration</h2>
+                <form method="POST">
+                    <label>Name</label>
+                    <input type="text" name="name" required>
+                    <label>Blood Group</label>
+                    <select name="blood_group" required>
+                        <option>A+</option><option>A-</option>
+                        <option>B+</option><option>B-</option>
+                        <option>O+</option><option>O-</option>
+                        <option>AB+</option><option>AB-</option>
+                    </select>
+                    <label>Location</label>
+                    <input type="text" name="location" required>
+                    <label>Phone</label>
+                    <input type="text" name="phone" required>
+                    <button class="btn-primary">Save / Update</button>
+                </form>
+            </div>
+            <!-- RIGHT: Donor Activity -->
+             <div class="donor-card">
+                <h2>Your Activity</h2>
+                {% if donor %}
+                <ul class="donor-activity">
+                    <li><strong>Blood Group:</strong> {{ donor.blood_group }}</li>
+                    <li><strong>Location:</strong> {{ donor.location }}</li>
+                    <li><strong>Status:</strong> Active</li>
+                </ul>
+            {% else %}
+                <p class="muted">
+                    No activity yet. Complete your registration.
+                </p>
+            {% endif %}
+        </div>
+
+
+    </div>
+</div>
+
+</section>
+
+{% endblock %}
+

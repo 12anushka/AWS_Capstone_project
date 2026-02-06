@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+
+<section class="auth-wrapper">
+
+    <div class="auth-card">
+
+        <h1 class="auth-title">Create Account</h1>
+        <p class="auth-subtitle">Join Blood Bridge</p>
+
+        <form method="POST" class="auth-form">
+
+            <label>Full Name</label>
+            <input type="text" name="name" required>
+
+            <label>Email</label>
+            <input type="email" name="email" required>
+
+            <label>Password</label>
+            <input type="password" name="password" required>
+
+            <label>Register As</label>
+            <select name="role" required>
+                <option value="donor">Donor</option>
+                <option value="hospital">Hospital</option>
+                <option value="admin">Admin</option>
+            </select>
+
+            <button class="auth-btn">Sign Up</button>
+
+        </form>
+
+        <p class="auth-switch">
+            Already have an account?
+            <a href="/login">Login</a>
+        </p>
+
+    </div>
+
+</section>
+
+{% endblock %}

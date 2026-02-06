@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Blood Bridge</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<header class="navbar">
+    <div class="brand">
+        <span class="logo">🩸</span>
+        <span class="brand-name">Blood Bridge</span>
+    </div>
+<div class="nav-links">
+
+    {% if session.get("logged_in") %}
+
+        <a href="/">Home</a>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/donor">Donor</a>
+        <a href="/hospital">Hospital</a>
+        <a href="/admin">Admin</a>
+
+        <a href="/logout" class="nav-logout">Logout</a>
+
+    {% endif %}
+
+</div>
+
+
+
+</header>
+
+<main class="main-content">
+    {% block content %}{% endblock %}
+</main>
+
+<footer class="footer">
+    <p>© 2026 Blood Bridge · Cloud Healthcare Platform</p>
+</footer>
+<script>
+  const links = document.querySelectorAll(".nav-links a");
+  links.forEach(link => {
+    if (link.href === window.location.href) {
+      link.classList.add("active");
+    }
+  });
+</script>
+
+
+</body>
+</html>

@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hospital-page">
+
+    <!-- Page Header -->
+    <div class="hospital-header">
+        <h1>🏥 Hospital Emergency Panel</h1>
+        <p>Raise urgent blood requests and monitor live availability</p>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="hospital-grid">
+
+        <!-- LEFT: Emergency Request -->
+        <div class="hospital-card">
+            <h2>Emergency Blood Request</h2>
+
+            <form method="POST" class="hospital-form">
+
+                <div class="form-group">
+                    <label>Blood Group</label>
+                    <select name="blood_group" required>
+                        <option value="" disabled selected>Select</option>
+                        <option>A+</option><option>A-</option>
+                        <option>B+</option><option>B-</option>
+                        <option>O+</option><option>O-</option>
+                        <option>AB+</option><option>AB-</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Units Required</label>
+                    <input type="number" name="units" min="1" max="10" placeholder="e.g. 3" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Priority Level</label>
+                    <select name="priority" required>
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="critical">Critical</option>
+                    </select>
+                </div>
+
+                <button class="btn-emergency">🚨 Raise Emergency Request</button>
+            </form>
+        </div>
+
+        <!-- RIGHT: Live Stock -->
+        <div class="hospital-card">
+            <h2>Live Blood Stock</h2>
+
+            <div class="stock-chip-grid">
+                {% for bg, count in stock.items() %}
+                    <span class="stock-chip
+                        {% if count == 0 %}danger
+                        {% elif count <= 2 %}warning
+                        {% else %}safe{% endif %}">
+                        {{ bg }} : {{ count }}
+                    </span>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+
+</section>
+
+
+{% endblock %}
+{% if stock %}
+    {% for bg, count in stock.items() %}
+        <!-- your UI -->
+    {% endfor %}
+{% else %}
+    <p class="muted-text">No stock data available</p>
+{% endif %}

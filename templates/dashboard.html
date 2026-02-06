@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-container">
+    <div class="dashboard-page">
+
+        <h1 class="dashboard-title">Blood Availability Dashboard</h1>
+        <p class="dashboard-subtitle">
+            Live overview of blood stock status
+        </p>
+
+        <div class="stock-grid">
+            {% for bg, count in stock.items() %}
+            <div class="stock-card
+                {% if count <= 1 %} danger
+                {% elif count <= 3 %} warning
+                {% else %} safe
+                {% endif %}
+            ">
+                <h2>{{ bg }}</h2>
+                <div class="stock-count">{{ count }}</div>
+                <div class="stock-label">Units Available</div>
+            </div>
+            {% endfor %}
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}

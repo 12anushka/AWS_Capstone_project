@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+
+<section class="auth-wrapper">
+
+    <div class="auth-card">
+
+        <h1 class="auth-title">Welcome Back</h1>
+        <p class="auth-subtitle">Login to Blood Bridge</p>
+
+        {% if error %}
+            <div class="auth-error">{{ error }}</div>
+        {% endif %}
+
+        <form method="POST" class="auth-form">
+
+            <label>Email</label>
+            <input type="email" name="email" required>
+
+            <label>Password</label>
+            <input type="password" name="password" required>
+
+            <label>Login As</label>
+            <select name="role" required>
+                <option value="donor">Donor</option>
+                <option value="hospital">Hospital</option>
+                <option value="admin">Admin</option>
+            </select>
+
+            <button class="auth-btn">Login</button>
+
+        </form>
+
+        <p class="auth-switch">
+            Don’t have an account?
+            <a href="/signup">Create one</a>
+        </p>
+
+    </div>
+
+</section>
+
+{% endblock %}

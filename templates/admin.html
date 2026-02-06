@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+
+
+<section class="admin-page">
+    <div class="page-container">
+
+        <div class="admin-container">
+            <h1 class="admin-title">Admin Control Panel</h1>
+            <p class="admin-subtitle">
+                Registered blood donors overview
+            </p>
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Blood Group</th>
+                        <th>Location</th>
+                        <th>Phone</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for donor in donors %}
+                    <tr>
+                        <td>{{ donor.name }}</td>
+                        <td>{{ donor.blood_group }}</td>
+                        <td>{{ donor.location }}</td>
+                        <td>{{ donor.phone }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+</section>
+
+{% endblock %}
