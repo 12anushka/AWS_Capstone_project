@@ -8,7 +8,7 @@ from botocore.exceptions import ClientError
 # FLASK CONFIG
 # =========================
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "bloodbridge_aws_secret")
+app.secret_key = "simplekey"
 
 # =========================
 # AWS CONFIG
