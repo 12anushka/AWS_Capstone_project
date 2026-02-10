@@ -1,129 +1,257 @@
-from flask import Flask, render_template, request, redirect, url_for
-import os
+from flask import Flask, render_template, request, redirect, session, url_for
 import boto3
 import uuid
-from werkzeug.utils import secure_filename
+import os
 from botocore.exceptions import ClientError
 
-# ==========================
-# FLASK APP
-# ==========================
+# =========================
+# FLASK CONFIG
+# =========================
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "aws_secret_key")
+app.secret_key = os.environ.get("SECRET_KEY", "bloodbridge_aws_secret")
 
-# ==========================
-# FILE UPLOAD CONFIG
-# ==========================
-UPLOAD_FOLDER = "static/uploads"
-app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-# ==========================
-# AWS CONFIG (IAM ROLE)
-# ==========================
+# =========================
+# AWS CONFIG
+# =========================
 REGION = "us-east-1"
-
 dynamodb = boto3.resource("dynamodb", region_name=REGION)
 
-# ==========================
-# DYNAMODB TABLES
-# ==========================
+# =========================
+# TABLES (Must Exist in AWS)
+# =========================
 users_table = dynamodb.Table("Users")
 donors_table = dynamodb.Table("Donors")
-hospitals_table = dynamodb.Table("Hospitals")
-blood_stock_table = dynamodb.Table("BloodStock")
-emergency_requests_table = dynamodb.Table("EmergencyRequests")
-donor_activity_table = dynamodb.Table("DonorActivity")
+activity_table = dynamodb.Table("Activities")
+stock_table = dynamodb.Table("BloodStock")
 
-# ==========================
+# =========================
+# DEMO AUTH (Same as Local)
+# =========================
+def authenticate_user(email, password, role):
+
+    demo_users = {
+        "admin": {"email": "admin@bloodbridge.com", "password": "admin123"},
+        "hospital": {"email": "hospital@bloodbridge.com", "password": "hospital123"},
+        "donor": {"email": "donor@bloodbridge.com", "password": "donor123"},
+    }
+
+    user = demo_users.get(role)
+
+    if user and user["email"] == email and user["password"] == password:
+        return user
+
+    return None
+
+
+# =========================
+# HELPERS
+# =========================
+def get_stock():
+
+    items = stock_table.scan().get("Items", [])
+
+    stock = {}
+
+    for i in items:
+        stock[i["blood_group"]] = int(i["units"])
+
+    return stock
+
+
+def add_activity(email, message):
+
+    activity_table.put_item(
+        Item={
+            "id": str(uuid.uuid4()),
+            "email": email,
+            "message": message
+        }
+    )
+
+
+def get_activities(email):
+
+    res = activity_table.scan()
+
+    return [
+        a for a in res.get("Items", [])
+        if a["email"] == email
+    ]
+
+
+def add_donor(data):
+
+    donors_table.put_item(Item=data)
+
+
+def get_all_donors():
+
+    return donors_table.scan().get("Items", [])
+
+
+def is_critical(bg, units):
+
+    stock = get_stock()
+
+    return stock.get(bg, 0) < units
+
+
+# =========================
 # ROUTES
-# ==========================
+# =========================
 
 @app.route("/")
-def index():
+def home():
+
+    if not session.get("logged_in"):
+        return redirect("/login")
+
     return render_template("landing.html")
 
 
-@app.route("/register", methods=["POST"])
-def register():
-    username = request.form["username"]
-    email = request.form["email"]
-    role = request.form.get("role", "donor")
+# ---------------- DASHBOARD ----------------
+@app.route("/dashboard")
+def dashboard():
 
-    try:
-        users_table.put_item(
-            Item={
-                "email": email,            # Partition Key
-                "username": username,
-                "role": role,
-                "created_at": str(uuid.uuid4())
-            }
+    if not session.get("logged_in"):
+        return redirect("/login")
+
+    return render_template("dashboard.html", stock=get_stock())
+
+
+# ---------------- DONOR ----------------
+@app.route("/donor", methods=["GET", "POST"])
+def donor():
+
+    if not session.get("logged_in"):
+        return redirect("/login")
+
+    email = session.get("email")
+
+    if request.method == "POST":
+
+        donor_data = {
+            "email": email,
+            "name": request.form["name"],
+            "blood_group": request.form["blood_group"],
+            "location": request.form["location"],
+            "phone": request.form["phone"]
+        }
+
+        add_donor(donor_data)
+
+        add_activity(email, "🩸 Donor profile updated")
+
+        return redirect("/donor")
+
+    activities = get_activities(email)
+
+    return render_template("donor.html", activities=activities)
+
+
+# ---------------- HOSPITAL ----------------
+@app.route("/hospital", methods=["GET", "POST"])
+def hospital():
+
+    if not session.get("logged_in"):
+        return redirect("/login")
+
+    stock = get_stock()
+    message = None
+    level = None
+
+    if request.method == "POST":
+
+        bg = request.form["blood_group"]
+        units = int(request.form["units"])
+        priority = request.form["priority"]
+
+        if is_critical(bg, units):
+
+            message = "🚨 Critical shortage! Emergency alert sent."
+            level = "danger"
+
+        else:
+
+            message = "✅ Request recorded."
+            level = "success"
+
+        add_activity(
+            session["email"],
+            f"🚨 Emergency request for {bg} ({units})"
         )
-        return redirect(url_for("index"))
 
-    except ClientError as e:
-        return str(e)
-
-
-@app.route("/upload", methods=["POST"])
-def upload():
-    if "file" not in request.files:
-        return "No file selected"
-
-    file = request.files["file"]
-    if file.filename == "":
-        return "No file selected"
-
-    filename = secure_filename(file.filename)
-    filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-    file.save(filepath)
-
-    return "File uploaded successfully"
+    return render_template(
+        "hospital.html",
+        stock=stock,
+        message=message,
+        level=level
+    )
 
 
-@app.route("/add-blood-stock", methods=["POST"])
-def add_blood_stock():
-    blood_group = request.form["blood_group"]
-    units = int(request.form["units"])
+# ---------------- ADMIN ----------------
+@app.route("/admin")
+def admin():
 
-    try:
-        blood_stock_table.put_item(
-            Item={
-                "blood_group": blood_group,     # Partition Key
-                "units_available": units,
-                "updated_at": str(uuid.uuid4())
-            }
-        )
-        return "Blood stock updated"
+    if not session.get("logged_in") or session.get("role") != "admin":
+        return redirect("/login")
 
-    except ClientError as e:
-        return str(e)
+    return render_template("admin.html", donors=get_all_donors())
 
 
-@app.route("/raise-request", methods=["POST"])
-def raise_emergency_request():
-    request_id = str(uuid.uuid4())
+# ---------------- LOGIN ----------------
+@app.route("/login", methods=["GET", "POST"])
+def login():
 
-    try:
-        emergency_requests_table.put_item(
-            Item={
-                "request_id": request_id,       # Partition Key
-                "hospital_id": request.form["hospital_id"],
-                "blood_group": request.form["blood_group"],
-                "units": int(request.form["units"]),
-                "priority": request.form["priority"],
-                "status": "OPEN"
-            }
-        )
-        return "Emergency request created"
+    if request.method == "POST":
 
-    except ClientError as e:
-        return str(e)
+        email = request.form["email"]
+        password = request.form["password"]
+        role = request.form["role"]
+
+        user = authenticate_user(email, password, role)
+
+        if user:
+
+            session["logged_in"] = True
+            session["role"] = role
+            session["email"] = email
+
+            if role == "admin":
+                return redirect("/admin")
+
+            elif role == "hospital":
+                return redirect("/hospital")
+
+            else:
+                return redirect("/donor")
+
+        return render_template("login.html", error="Invalid credentials")
+
+    return render_template("login.html")
 
 
-# ==========================
-# RUN APP
-# ==========================
+# ---------------- SIGNUP ----------------
+@app.route("/signup", methods=["GET", "POST"])
+def signup():
+
+    if request.method == "POST":
+        return redirect("/login")
+
+    return render_template("signup.html")
+
+
+# ---------------- LOGOUT ----------------
+@app.route("/logout")
+def logout():
+
+    session.clear()
+    return redirect("/login")
+
+
+# =========================
+# RUN
+# =========================
 if __name__ == "__main__":
-    app.run(host="0.0.0.0")
 
+    app.run(host="0.0.0.0", port=5000)
